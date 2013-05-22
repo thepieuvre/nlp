@@ -17,6 +17,6 @@ jar {
     manifest {
         attributes 'Implementation-Title': 'The Pieuvre - Natural Language Processor', 
             'Implementation-Version': version, 
-            'Main-Class': 'thepieuvre.nlp.NLProccessor'
+            'Main-Class': 'thepieuvre.nlp.NLProcessor'
     }
 }
