@@ -1,10 +1,23 @@
 package thepieuvre.nlp
 
+import thepieuvre.nlp.util.LastUpdateList
+
 import redis.clients.jedis.Jedis
 
 import groovy.json.JsonBuilder
 
 class NLProcessor {
+
+	private LastUpdateList updated = new LastUpdateList(500)
+
+	private def updatingSimilars(Jedis redis, def similars) {
+		similars.each { id, score ->
+			if (! updated.hasElem(id)) {
+				redis.rpush("queue:nlp", "$id")
+				updated.add(id)
+			}
+		}
+	}
 
 	def redisMode() {
 		println 'Starting listenning to the queue:extractor'
@@ -17,7 +30,7 @@ class NLProcessor {
 				if (task) {
 					println "${new Date()}.>>>>> ${task[1]}"
 					AnalyzedArticle article = new AnalyzedArticle(task[1] as long)
-					def builder = new groovy.json.JsonBuilder()
+					def builder = new JsonBuilder()
 					builder.nlp {
 						id article.id
 						synopsis article.synopsis
@@ -26,6 +39,7 @@ class NLProcessor {
 						similars article.similars
 					}
 					redis.rpush("queue:article", builder.toString())
+					updatingSimilars(redis, article.similars)
 					println "${new Date()} - Analyzed and pushed to the queue:article"
 				} else {
 					continue
