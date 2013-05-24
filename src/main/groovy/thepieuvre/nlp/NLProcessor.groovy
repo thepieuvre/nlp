@@ -15,7 +15,7 @@ class NLProcessor {
 			if (! updated.hasElem(id)) {
 				redis.rpush("queue:nlp", "$id")
 				updated.add(id)
-			}
+ 			}
 		}
 	}
 
