@@ -13,20 +13,20 @@ class NLProcessor {
 	private def updatingSimilars(Jedis redis, def similars) {
 		similars.each { id, score ->
 			if (! updated.hasElem(id)) {
-				redis.rpush("queue:nlp", "$id")
+				redis.rpush("queue:nlp-low", "$id")
 				updated.add(id)
  			}
 		}
 	}
 
-	def redisMode() {
-		println 'Starting listenning to the queue:extractor'
+	def redisMode(String queue) {
+		println "Starting listenning to the $queue"
 		Jedis redis = new Jedis("localhost")
-		redis.sadd('queues', 'queue:nlp')
+		redis.sadd('queues', queue)
 		while (true) {
 			def task 
 			try {
-				task = redis.blpop(31415, 'queue:nlp')
+				task = redis.blpop(31415, queue)
 				if (task) {
 					println "${new Date()}.>>>>> ${task[1]}"
 					AnalyzedArticle article = new AnalyzedArticle(task[1] as long)
@@ -54,13 +54,14 @@ class NLProcessor {
 		println "Starting Natural Language Processor"
 		NLProcessor processor = new NLProcessor()
 
-		if (args.size() != 1) {
+		if (args.size() < 1) {
 			System.err.println("Not enought arguments")
 			System.exit(1)
 		}
 
 		if (args[0] == '--redis-mode') {
-			processor.redisMode()
+			def queue = (args.size() == 2 && args[1] == 'low')?'queue:nlp-low':'queue:nlp'
+			processor.redisMode(queue)
 		} 
 	}
 
