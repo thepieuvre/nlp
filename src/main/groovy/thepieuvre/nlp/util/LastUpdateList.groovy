@@ -12,7 +12,7 @@ class LastUpdateList {
 	
 	def add(elem) {
 		if (list.size() > fixedSize) {
-			set.remove(list.last())
+			set.remove(list.first())
 			list = list.tail()
 		}
 		list << elem
@@ -25,5 +25,9 @@ class LastUpdateList {
 
 	String toString() {
 		list.toString()
+	}
+
+	long size(){
+		list.size()
 	}
 }
