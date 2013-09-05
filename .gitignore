@@ -2,5 +2,5 @@
 .DS_Store
 build/
 .gradle
-
+*.class
 .gradletasknamecache

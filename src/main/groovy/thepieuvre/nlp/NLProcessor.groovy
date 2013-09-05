@@ -3,12 +3,14 @@ package thepieuvre.nlp
 import thepieuvre.nlp.util.LastUpdateList
 
 import redis.clients.jedis.Jedis
+import redis.clients.jedis.JedisPool
+import redis.clients.jedis.JedisPoolConfig
 
 import groovy.json.JsonBuilder
 
 class NLProcessor {
 
-	private Jedis redis = new Jedis("localhost")
+	static JedisPool pool = new JedisPool(new JedisPoolConfig(), "localhost", 6379, 30000)
 
 	private LastUpdateList updated = new LastUpdateList(1000)
 
@@ -19,26 +21,23 @@ class NLProcessor {
 			if (! updated.hasElem(id) && ! toProcess.contains(id)) {
 				redis.rpush("queue:nlp-low", "$id")
 				updated.add(id)
-				println "..... $id pushed for updating"
- 			} else {
- 				println "..... $id not repushed"
  			}
 		}
 	}
 
 	def redisMode(String queue) {
 		println "Starting listenning to the $queue"
-		redis.sadd('queues', queue)
 		while (true) {
+			Jedis redis = pool.getResource()
 			try {
 				int count = 0
 				def task = redis.blpop(31415, queue)
 				if (queue == 'queue:nlp-low') {
-					while(toProcess.size() < 1000 || task) {
+					while(toProcess.size() < 100) {
 						count++
 						if (task) {
 							toProcess << (((task.size() == 1)?task[0]:task[1]) as long)
-							println "To Process ${toProcess.size()} on  ${count}"
+							println "${new Date()} - To Process ${toProcess.size()} on  ${count}"
 						} else {
 							println "no more task"
 							break
@@ -51,7 +50,7 @@ class NLProcessor {
 						toProcess << (task[1] as long)
 					}
 				}
-				println "To process ready to be processed"
+				println "${new Date()} - To process ready to be processed"
 				
 				toProcess.each {
 					println "${new Date()}.>>>>> $it"
@@ -72,6 +71,8 @@ class NLProcessor {
 				count = 0
 			} catch (Exception e) {
 				e.printStackTrace()
+			} finally {
+				NLProcessor.pool.returnResource(redis)
 			}
 		}
 	}
@@ -91,4 +92,7 @@ class NLProcessor {
 		} 
 	}
 
+	void finalize() throws Throwable {
+		pool.destroy()
+	}
 }
