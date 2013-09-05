@@ -33,7 +33,7 @@ class NLProcessor {
 				int count = 0
 				def task = redis.blpop(31415, queue)
 				if (queue == 'queue:nlp-low') {
-					while(toProcess.size() < 1000 || task) {
+					while(toProcess.size() < 100) {
 						count++
 						if (task) {
 							toProcess << (((task.size() == 1)?task[0]:task[1]) as long)
