@@ -1,5 +1,7 @@
 package thepieuvre.nlp
 
+import thepieuvre.nlp.util.UniqueMath
+
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.Pipeline
 import redis.clients.jedis.Response
@@ -37,7 +39,10 @@ class RedisHelper {
 						}
 					}
 				}
-				it.articles = articles.unique()
+				//it.articles = articles.unique()
+				it.articles = UniqueMath.unique(articles) { v ->
+					v
+				}
 			}
 			return res
 		} catch (Exception e) {
