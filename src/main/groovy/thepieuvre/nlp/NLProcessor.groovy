@@ -10,7 +10,7 @@ import groovy.json.JsonBuilder
 
 class NLProcessor {
 
-	static JedisPool pool = new JedisPool(new JedisPoolConfig(), "localhost", 6379, 30000)
+	static JedisPool pool = new JedisPool(new JedisPoolConfig(), "localhost", 6379, 180000)
 
 	private LastUpdateList updated = new LastUpdateList(1000)
 
