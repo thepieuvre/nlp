@@ -10,7 +10,7 @@ import groovy.json.JsonBuilder
 
 class NLProcessor {
 
-	static JedisPool pool = new JedisPool(new JedisPoolConfig(), "localhost", 6379, 30000)
+	static JedisPool pool = new JedisPool(new JedisPoolConfig(), "localhost", 6379, 180000)
 
 	private LastUpdateList updated = new LastUpdateList(1000)
 
@@ -34,16 +34,17 @@ class NLProcessor {
 				def task = redis.blpop(31415, queue)
 				if (queue == 'queue:nlp-low') {
 					while(toProcess.size() < 100) {
+						println "depoped: $task"
 						count++
 						if (task) {
-							toProcess << (((task.size() == 1)?task[0]:task[1]) as long)
-							println "${new Date()} - To Process ${toProcess.size()} on  ${count}"
+							String elem = ((task instanceof ArrayList)? task[1]:task)
+							toProcess.add(elem.toLong())
+							println "${new Date()} - Added $elem for Processing ${toProcess.size()} on  ${count}"
 						} else {
 							println "no more task"
 							break
 						}
 						task = redis.lpop(queue)
-						println "depoped: $task"
 					}
 				} else {
 					if (task) {
