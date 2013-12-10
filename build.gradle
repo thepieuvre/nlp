@@ -20,7 +20,7 @@ repositories {
 }
 
 dependencies {
-    compile 'org.codehaus.groovy:groovy-all:2.1.7'
+    compile 'org.codehaus.groovy:groovy-all:2.2.1'
     compile 'redis.clients:jedis:2.2.1'
 }
 
