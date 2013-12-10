@@ -45,9 +45,9 @@ class NLProcessor {
 
 	private def updatingSimilars(Jedis redis, def similars) {
 		similars.each { id, score ->
-			if (! updated.hasElem(id) && ! toProcess.contains(id)) {
+			if (! updated.containsKey(id) && ! toProcess.contains(id)) {
 				redis.rpush("queue:nlp-low", "$id")
-				updated.add(id)
+				updated.put(id, 0b0)
  			}
 		}
 	}
