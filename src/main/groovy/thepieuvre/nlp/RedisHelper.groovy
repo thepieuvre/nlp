@@ -3,16 +3,23 @@ package thepieuvre.nlp
 import thepieuvre.nlp.util.UniqueMath
 
 import redis.clients.jedis.Jedis
+import redis.clients.jedis.JedisPool
 import redis.clients.jedis.Pipeline
 import redis.clients.jedis.Response
 
 class RedisHelper {
 
+	static JedisPool pool
+
+	static void init(JedisPool pool) {
+		this.pool = pool
+	}
+
 	RedisHelper() {
 	}
 
 	private def fetchingGram(long article, String type) {
-		Jedis redis = NLProcessor.pool.getResource()
+		Jedis redis = pool.getResource()
 		try {
 			def res = []
 			String key = "article:$article:$type"
@@ -39,7 +46,7 @@ class RedisHelper {
 						}
 					}
 				}
-				//it.articles = articles.unique()
+				//it.articles = articles.unique() // bad performances
 				it.articles = UniqueMath.unique(articles) { v ->
 					v
 				}
@@ -48,7 +55,7 @@ class RedisHelper {
 		} catch (Exception e) {
 			e.printStackTrace()
 		} finally {
-			NLProcessor.pool.returnResource(redis)
+			pool.returnResource(redis)
 		}
 	}
 
