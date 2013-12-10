@@ -53,7 +53,7 @@ class RedisHelper {
 			}
 			return res
 		} catch (Exception e) {
-			e.printStackTrace()
+			throw e
 		} finally {
 			pool.returnResource(redis)
 		}

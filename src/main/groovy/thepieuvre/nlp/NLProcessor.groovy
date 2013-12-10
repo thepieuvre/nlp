@@ -8,8 +8,11 @@ import redis.clients.jedis.JedisPoolConfig
 
 import groovy.json.JsonBuilder
 
+import groovy.util.logging.Log4j
+
 import org.apache.log4j.PropertyConfigurator
 
+@Log4j
 class NLProcessor {
 
 	JedisPool pool
@@ -50,7 +53,7 @@ class NLProcessor {
 	}
 
 	def redisMode(String queue) {
-		println "Starting listenning to the $queue"
+		log.info "Starting listenning to the $queue"
 		while (true) {
 			Jedis redis = pool.getResource()
 			try {
@@ -58,14 +61,14 @@ class NLProcessor {
 				def task = redis.blpop(31415, queue)
 				if (queue == 'queue:nlp-low') {
 					while(toProcess.size() < 100) {
-						println "depoped: $task"
+						log.info "depoped: $task"
 						count++
 						if (task) {
 							String elem = ((task instanceof ArrayList)? task[1]:task)
 							toProcess.add(elem.toLong())
-							println "${new Date()} - Added $elem for Processing ${toProcess.size()} on  ${count}"
+							log.info "Added $elem for Processing ${toProcess.size()} on  ${count}"
 						} else {
-							println "no more task"
+							log.info "no more task"
 							break
 						}
 						task = redis.lpop(queue)
@@ -75,10 +78,10 @@ class NLProcessor {
 						toProcess << (task[1] as long)
 					}
 				}
-				println "${new Date()} - To process ready to be processed"
+				log.debug "To process ready to be processed"
 				
 				toProcess.each {
-					println "${new Date()}.>>>>> $it"
+					log.info ">>>>> $it"
 					AnalyzedArticle article = new AnalyzedArticle(it)
 					def builder = new JsonBuilder()
 					builder.nlp {
@@ -90,12 +93,12 @@ class NLProcessor {
 					}
 					redis.rpush("queue:article", builder.toString())
 					updatingSimilars(redis, article.similars )
-					println "${new Date()} - Analyzed and pushed to the queue:article"
+					log.info "Analyzed and pushed to the queue:article"
 				}
 				toProcess.clear()
 				count = 0
 			} catch (Exception e) {
-				e.printStackTrace()
+				log.error e
 			} finally {
 				pool.returnResource(redis)
 			}
