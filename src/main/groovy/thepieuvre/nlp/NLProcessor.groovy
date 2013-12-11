@@ -8,25 +8,53 @@ import redis.clients.jedis.JedisPoolConfig
 
 import groovy.json.JsonBuilder
 
+import groovy.util.logging.Log4j
+
+import org.apache.log4j.PropertyConfigurator
+
+@Log4j
 class NLProcessor {
 
-	static JedisPool pool = new JedisPool(new JedisPoolConfig(), "localhost", 6379, 180000)
+	JedisPool pool
 
 	private LastUpdateList updated = new LastUpdateList(1000)
 
 	private Set toProcess = new TreeSet<Long>()
 
+	private static def cli
+
+	static {
+  		cli = new CliBuilder(
+			usage: 'nlp [options] [queue name]\n\tqueue name: name of the queue (optional)', 
+        	header: 'The Pieuvre - NLP: Natural Language Processor',
+        	stopAtNonOption: false
+    	)
+		cli.h longOpt: 'help', 'print this message'
+		cli.c longOpt: 'config', args:1, argName:'configPath', 'configuration file\'s path'
+		cli._ longOpt: 'redis-host', args:1, argName:'redisHost', 'redis server\'s hostname'
+		cli._ longOpt: 'redis-port', args:1, argName:'redisPort', 'redis server\'s port'
+		cli._ longOpt: 'redis-url', args:1, argName:'redisUrl', 'redis server\'s url -- server.domain.com:456'
+	}
+
+	NLProcessor(String redisHost, int redisPort) {
+		JedisPoolConfig config = new JedisPoolConfig()
+		config.setTestOnBorrow(true)
+		pool = new JedisPool(config, redisHost, redisPort, 180000)
+	}
+
+
 	private def updatingSimilars(Jedis redis, def similars) {
+		log.info "Updating similars"
 		similars.each { id, score ->
-			if (! updated.hasElem(id) && ! toProcess.contains(id)) {
+			if (! updated.containsKey(id) && ! toProcess.contains(id)) {
 				redis.rpush("queue:nlp-low", "$id")
-				updated.add(id)
+				updated.put(id, 0b0)
  			}
 		}
 	}
 
 	def redisMode(String queue) {
-		println "Starting listenning to the $queue"
+		log.info "Starting listenning to the $queue"
 		while (true) {
 			Jedis redis = pool.getResource()
 			try {
@@ -34,14 +62,14 @@ class NLProcessor {
 				def task = redis.blpop(31415, queue)
 				if (queue == 'queue:nlp-low') {
 					while(toProcess.size() < 100) {
-						println "depoped: $task"
+						log.info "depoped: $task"
 						count++
 						if (task) {
 							String elem = ((task instanceof ArrayList)? task[1]:task)
 							toProcess.add(elem.toLong())
-							println "${new Date()} - Added $elem for Processing ${toProcess.size()} on  ${count}"
+							log.info "Added $elem for Processing ${toProcess.size()} on  ${count}"
 						} else {
-							println "no more task"
+							log.info "no more task"
 							break
 						}
 						task = redis.lpop(queue)
@@ -51,10 +79,10 @@ class NLProcessor {
 						toProcess << (task[1] as long)
 					}
 				}
-				println "${new Date()} - To process ready to be processed"
+				log.debug "To process ready to be processed"
 				
 				toProcess.each {
-					println "${new Date()}.>>>>> $it"
+					log.info ">>>>> $it"
 					AnalyzedArticle article = new AnalyzedArticle(it)
 					def builder = new JsonBuilder()
 					builder.nlp {
@@ -65,32 +93,75 @@ class NLProcessor {
 						similars article.similars
 					}
 					redis.rpush("queue:article", builder.toString())
-					updatingSimilars(redis, article.similars )
-					println "${new Date()} - Analyzed and pushed to the queue:article"
+					if (queue != 'queue:nlp-low') {
+						updatingSimilars(redis, article.similars)
+					}
+					log.info "Analyzed and pushed to the queue:article"
 				}
 				toProcess.clear()
 				count = 0
 			} catch (Exception e) {
-				e.printStackTrace()
+				log.error e
 			} finally {
-				NLProcessor.pool.returnResource(redis)
+				pool.returnResource(redis)
 			}
 		}
 	}
 
-	static void main(String [] args) {
-		println "Starting Natural Language Processor"
-		NLProcessor processor = new NLProcessor()
+	private static Map parsingCli(String [] args) {
+		def opts = cli.parse(args)
 
-		if (args.size() < 1) {
-			System.err.println("Not enought arguments")
+		if (opts.h) {
+			cli.usage()
+			System.exit(0)
+		}
+
+		if (opts.arguments().size() > 1) {
+			System.err.&println 'Not enought arguments'
+			cli.usage()
 			System.exit(1)
 		}
 
-		if (args[0] == '--redis-mode') {
-			def queue = (args.size() == 2 && args[1] == 'low')?'queue:nlp-low':'queue:nlp'
-			processor.redisMode(queue)
-		} 
+		def parsed = [:]
+
+		if (opts.arguments().size() == 1) {
+			parsed.queue = opts.arguments()[0]
+		}
+
+		parsed.redisHost = 'localhost'
+		parsed.redisPort = 6379
+
+		if (opts.'redis-url') {
+			URI uri = new URI(opts.'redis-url')
+			parsed.redisHost = uri.getHost()
+			parsed.redisPort = uri.getPort()
+		}
+
+		if (opts.'redis-host') {
+			parsed.redisHost = opts.'redis-host'
+		}
+
+		if (opts.'redis-port') {
+			parsed.redisPort = opts.'redis-port' as int
+		}
+
+		if (opts.c) {
+			def config = new ConfigSlurper().parse(new File(opts.c).toURL())
+			PropertyConfigurator.configure(config.toProperties())
+		}
+
+		return parsed
+	}
+
+	static void main(String [] args) {
+		def params = parsingCli(args)
+
+		NLProcessor processor = new NLProcessor(params.redisHost, params.redisPort)
+		
+		RedisHelper.init(processor.pool)
+
+		String queue = (params.queue)?"queue:${params.queue}":'queue:nlp'
+		processor.redisMode(queue)
 	}
 
 	void finalize() throws Throwable {

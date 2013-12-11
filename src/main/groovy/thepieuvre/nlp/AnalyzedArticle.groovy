@@ -18,7 +18,7 @@ class AnalyzedArticle {
 	AnalyzedArticle(long id){
 		this.id = id
 		nGrams = redis.getNGram(id)
-		synopsis = synopsis()
+		//synopsis = synopsis()
 		keyWords = nGrams*.name
 		keyWordsShort = keyWordsShorter()
 		similars = similars()

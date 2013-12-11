@@ -1,33 +1,15 @@
 package thepieuvre.nlp.util
 
-class LastUpdateList {
+class LastUpdateList extends LinkedHashMap {
 
-	Set set = new TreeSet<Long>()
-	def list = []
 	int fixedSize
 
 	LastUpdateList(int fixedSize) {
 		this.fixedSize = fixedSize
 	}
+
+	protected boolean removeEldestEntry(Map.Entry eldest) {
+        return size() > fixedSize;
+    }
 	
-	def add(elem) {
-		if (list.size() > fixedSize) {
-			set.remove(list.first())
-			list = list.tail()
-		}
-		list << elem
-		set.add(elem)
-	}
-
-	def hasElem(elem) {
-		set.contains(elem)
-	}
-
-	String toString() {
-		list.toString()
-	}
-
-	long size(){
-		list.size()
-	}
 }
