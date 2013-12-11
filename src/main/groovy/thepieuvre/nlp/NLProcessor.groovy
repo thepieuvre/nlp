@@ -44,6 +44,7 @@ class NLProcessor {
 
 
 	private def updatingSimilars(Jedis redis, def similars) {
+		log.info "Updating similars"
 		similars.each { id, score ->
 			if (! updated.containsKey(id) && ! toProcess.contains(id)) {
 				redis.rpush("queue:nlp-low", "$id")
@@ -92,7 +93,9 @@ class NLProcessor {
 						similars article.similars
 					}
 					redis.rpush("queue:article", builder.toString())
-					updatingSimilars(redis, article.similars )
+					if (queue != 'queue:nlp-low') {
+						updatingSimilars(redis, article.similars)
+					}
 					log.info "Analyzed and pushed to the queue:article"
 				}
 				toProcess.clear()
