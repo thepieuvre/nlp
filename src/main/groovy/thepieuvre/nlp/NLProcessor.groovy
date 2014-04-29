@@ -19,7 +19,7 @@ class NLProcessor {
 
 	private LastUpdateList updated = new LastUpdateList(1000)
 
-	private Set toProcess = new TreeSet<Long>()
+	private def toProcess = []
 
 	private static def cli
 
@@ -46,7 +46,7 @@ class NLProcessor {
 	private def updatingSimilars(Jedis redis, def similars) {
 		log.info "Updating similars"
 		similars.each { id, score ->
-			if (! updated.containsKey(id) && ! toProcess.contains(id)) {
+			if (! updated.containsKey(id)) {
 				redis.rpush("queue:nlp-low", "$id")
 				updated.put(id, 0b0)
  			}
@@ -58,7 +58,6 @@ class NLProcessor {
 		while (true) {
 			Jedis redis = pool.getResource()
 			try {
-				int count = 0
 				def task = redis.blpop(62830, queue)
 				log.info "depoped: $task"
 				if (task) {
@@ -70,6 +69,7 @@ class NLProcessor {
 					log.info ">>>>> $it"
 					AnalyzedArticle article = new AnalyzedArticle(it)
 					def builder = new JsonBuilder()
+					log.info "Similars ${article.similars}"
 					builder.nlp {
 						id article.id
 						synopsis article.synopsis
@@ -83,8 +83,7 @@ class NLProcessor {
 					}
 					log.info "Analyzed and pushed to the queue:article"
 				}
-				toProcess.clear()
-				count = 0
+				toProcess = []
 			} catch (Exception e) {
 				log.error e
 			} finally {
