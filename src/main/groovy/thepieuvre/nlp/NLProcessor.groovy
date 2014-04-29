@@ -59,7 +59,7 @@ class NLProcessor {
 			Jedis redis = pool.getResource()
 			try {
 				int count = 0
-				def task = redis.blpop(31415, queue)
+				def task = redis.blpop(62830, queue)
 				log.info "depoped: $task"
 				if (task) {
 					toProcess << (task[1] as long)
