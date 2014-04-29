@@ -19,13 +19,13 @@ class NLProcessor {
 
 	private LastUpdateList updated = new LastUpdateList(1000)
 
-	private Set toProcess = new TreeSet<Long>()
+	private def toProcess = []
 
 	private static def cli
 
 	static {
   		cli = new CliBuilder(
-			usage: 'nlp [options] [queue name]\n\tqueue name: name of the queue (optional)', 
+			usage: 'nlp [options] [queue name]\n\tqueue name: name of the queue (optional)',
         	header: 'The Pieuvre - NLP: Natural Language Processor',
         	stopAtNonOption: false
     	)
@@ -46,7 +46,7 @@ class NLProcessor {
 	private def updatingSimilars(Jedis redis, def similars) {
 		log.info "Updating similars"
 		similars.each { id, score ->
-			if (! updated.containsKey(id) && ! toProcess.contains(id)) {
+			if (! updated.containsKey(id)) {
 				redis.rpush("queue:nlp-low", "$id")
 				updated.put(id, 0b0)
  			}
@@ -58,33 +58,18 @@ class NLProcessor {
 		while (true) {
 			Jedis redis = pool.getResource()
 			try {
-				int count = 0
-				def task = redis.blpop(31415, queue)
-				if (queue == 'queue:nlp-low') {
-					while(toProcess.size() < 100) {
-						log.info "depoped: $task"
-						count++
-						if (task) {
-							String elem = ((task instanceof ArrayList)? task[1]:task)
-							toProcess.add(elem.toLong())
-							log.info "Added $elem for Processing ${toProcess.size()} on  ${count}"
-						} else {
-							log.info "no more task"
-							break
-						}
-						task = redis.lpop(queue)
-					}
-				} else {
-					if (task) {
-						toProcess << (task[1] as long)
-					}
+				def task = redis.blpop(62830, queue)
+				log.info "depoped: $task"
+				if (task) {
+					toProcess << (task[1] as long)
 				}
 				log.debug "To process ready to be processed"
-				
+
 				toProcess.each {
 					log.info ">>>>> $it"
 					AnalyzedArticle article = new AnalyzedArticle(it)
 					def builder = new JsonBuilder()
+					log.info "Similars ${article.similars}"
 					builder.nlp {
 						id article.id
 						synopsis article.synopsis
@@ -98,8 +83,7 @@ class NLProcessor {
 					}
 					log.info "Analyzed and pushed to the queue:article"
 				}
-				toProcess.clear()
-				count = 0
+				toProcess = []
 			} catch (Exception e) {
 				log.error e
 			} finally {
@@ -157,7 +141,7 @@ class NLProcessor {
 		def params = parsingCli(args)
 
 		NLProcessor processor = new NLProcessor(params.redisHost, params.redisPort)
-		
+
 		RedisHelper.init(processor.pool)
 
 		String queue = (params.queue)?"queue:${params.queue}":'queue:nlp'
