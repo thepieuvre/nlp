@@ -1,17 +1,20 @@
 apply plugin: 'groovy'
 apply plugin: 'versions'
 
-version = '0.9'
+version = '1.0-RC2'
 
 buildscript {
   repositories {
     // Use 'gradle install' to install latest
+    maven {
+      url "https://github.com/ben-manes/gradle-versions-plugin/raw/mvnrepo"
+    }
     mavenCentral()
     mavenLocal()
   }
 
   dependencies {
-    classpath 'com.github.ben-manes:gradle-versions-plugin:latest.integration'
+    classpath 'com.github.ben-manes:gradle-versions-plugin:0.5-beta-2'
   }
 }
 
@@ -30,8 +33,8 @@ jar {
     dependsOn configurations.compile
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     manifest {
-        attributes 'Implementation-Title': 'The Pieuvre - Natural Language Processor', 
-            'Implementation-Version': version, 
+        attributes 'Implementation-Title': 'The Pieuvre - Natural Language Processor',
+            'Implementation-Version': version,
             'Main-Class': 'thepieuvre.nlp.NLProcessor'
     }
 }
