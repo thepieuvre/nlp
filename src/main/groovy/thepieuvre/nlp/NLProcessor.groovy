@@ -25,7 +25,7 @@ class NLProcessor {
 
 	static {
   		cli = new CliBuilder(
-			usage: 'nlp [options] [queue name]\n\tqueue name: name of the queue (optional)', 
+			usage: 'nlp [options] [queue name]\n\tqueue name: name of the queue (optional)',
         	header: 'The Pieuvre - NLP: Natural Language Processor',
         	stopAtNonOption: false
     	)
@@ -80,7 +80,7 @@ class NLProcessor {
 					}
 				}
 				log.debug "To process ready to be processed"
-				
+
 				toProcess.each {
 					log.info ">>>>> $it"
 					AnalyzedArticle article = new AnalyzedArticle(it)
@@ -157,7 +157,7 @@ class NLProcessor {
 		def params = parsingCli(args)
 
 		NLProcessor processor = new NLProcessor(params.redisHost, params.redisPort)
-		
+
 		RedisHelper.init(processor.pool)
 
 		String queue = (params.queue)?"queue:${params.queue}":'queue:nlp'
