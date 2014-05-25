@@ -102,6 +102,7 @@ class NLProcessor {
 				count = 0
 			} catch (Exception e) {
 				log.error e
+				e.printStackTrace()
 			} finally {
 				pool.returnResource(redis)
 			}
