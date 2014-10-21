@@ -45,7 +45,10 @@ class NLProcessor {
 
 	private def updatingSimilars(Jedis redis, def similars) {
 		log.info "Updating similars"
-		similars.each { id, score ->
+
+		similars.sort {  s1 , s2 ->
+			s1.value - s2.value
+		}.take(10).each { id, score ->
 			if (! updated.containsKey(id)) {
 				redis.rpush("queue:nlp-low", "$id")
 				updated.put(id, 0b0)
@@ -69,7 +72,7 @@ class NLProcessor {
 					log.info ">>>>> $it"
 					AnalyzedArticle article = new AnalyzedArticle(it)
 					def builder = new JsonBuilder()
-					log.info "Similars ${article.similars}"
+					log.info "Similars ${article.similars.size()}"
 					builder.nlp {
 						id article.id
 						synopsis article.synopsis
