@@ -17,7 +17,7 @@ class NLProcessor {
 
 	JedisPool pool
 
-	private LastUpdateList updated = new LastUpdateList(1000)
+	private LastUpdateList updated = new LastUpdateList(600)
 
 	private def toProcess = []
 
@@ -49,9 +49,9 @@ class NLProcessor {
 		similars.sort {  s1 , s2 ->
 			s1.value - s2.value
 		}.take(10).each { id, score ->
-			if (! updated.containsKey(id)) {
+			if (! updated.containsKey(id, redis)) {
 				redis.rpush("queue:nlp-low", "$id")
-				updated.put(id, 0b0)
+				updated.put(id, redis)
  			}
 		}
 	}
