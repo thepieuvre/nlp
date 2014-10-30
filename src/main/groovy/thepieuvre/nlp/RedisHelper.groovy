@@ -39,8 +39,8 @@ class RedisHelper {
 				def articles = []
 				it.articles.get().each { resp ->
 					String art = resp
-					if (art != "article:$article") {
-						def artId = art.split(':')[1] 
+					if (art && art != "article:$article") {
+						def artId = art.split(':')[1]
 						if (artId) {
 							articles << (artId as long)
 						}

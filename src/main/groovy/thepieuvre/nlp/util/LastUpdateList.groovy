@@ -1,15 +1,20 @@
 package thepieuvre.nlp.util
 
-class LastUpdateList extends LinkedHashMap {
+class LastUpdateList {
 
-	int fixedSize
+	private static final String INDEX = 'LASTUPDATE'
+	long expire // in seconds
 
-	LastUpdateList(int fixedSize) {
-		this.fixedSize = fixedSize
+	LastUpdateList(long expire) {
+		this.expire = expire
 	}
 
-	protected boolean removeEldestEntry(Map.Entry eldest) {
-        return size() > fixedSize;
+    boolean containsKey(key, redis) {
+    	redis.get("$INDEX:$key")
+    }
+
+    void put(key, redis) {
+    	redis.set("$INDEX:$key", "$key", 'NX', 'EX', expire)
     }
 	
 }

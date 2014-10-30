@@ -1,12 +1,14 @@
 apply plugin: 'groovy'
 apply plugin: 'versions'
 
-version = '1.0-RC1'
+version = '1.0-RC2'
 
 buildscript {
   repositories {
     // Use 'gradle install' to install latest
-    maven { url "https://github.com/ben-manes/gradle-versions-plugin/raw/mvnrepo" }
+    maven {
+      url "https://github.com/ben-manes/gradle-versions-plugin/raw/mvnrepo"
+    }
     mavenCentral()
     mavenLocal()
   }
@@ -21,8 +23,8 @@ repositories {
 }
 
 dependencies {
-    compile 'org.codehaus.groovy:groovy-all:2.2.1'
-    compile 'redis.clients:jedis:2.4.2'
+    compile 'org.codehaus.groovy:groovy-all:2.3.6'
+    compile 'redis.clients:jedis:2.5.2'
     compile 'log4j:log4j:1.2.17'
     compile 'commons-cli:commons-cli:1.2'
 }
